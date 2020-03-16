@@ -4,6 +4,8 @@
 import { commands, Extension, ExtensionContext, extensions } from "vscode";
 import { dispose as disposeTelemetryWrapper, initializeFromJsonFile, instrumentOperation } from "vscode-extension-telemetry-wrapper";
 import { Commands } from "./commands";
+import { Context } from "./constants";
+import { contextManager } from "./contextManager";
 import { LibraryController } from "./controllers/libraryController";
 import { ProjectController } from "./controllers/projectController";
 import { Services } from "./services";
@@ -16,24 +18,23 @@ export async function activate(context: ExtensionContext): Promise<any> {
 }
 
 function activateExtension(operationId: string, context: ExtensionContext) {
-    commands.executeCommand("setContext", "extensionActivated", true);
-
     Services.initialize(context);
     Settings.initialize(context);
+    contextManager.initialize(context);
 
     setMavenEnabledContext();
 
     context.subscriptions.push(new ProjectController(context));
     context.subscriptions.push(new LibraryController(context));
     context.subscriptions.push(new DependencyExplorer(context));
+    context.subscriptions.push(contextManager);
+    contextManager.setContextValue(Context.EXTENSION_ACTIVATED, true);
 }
 
 // determine if the add dependency shortcut will show or not
 function setMavenEnabledContext() {
     const mavenExt: Extension<any> | undefined = extensions.getExtension("vscjava.vscode-maven");
-    if (mavenExt) {
-        commands.executeCommand("setContext", "mavenEnabled", true);
-    }
+    contextManager.setContextValue(Context.MAVEN_ENABLED, !!mavenExt);
 }
 
 // this method is called when your extension is deactivated
